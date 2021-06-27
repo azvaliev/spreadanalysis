@@ -3,11 +3,11 @@ import json
 import pprint
 
 APIKEY = "PRXEUA8NGTONOWLNLGAOCCSLGKUKN41H"
-SYMBOL = "AMC"
+SYMBOL = "PLTR"
 # Price where you want the strike to break even
-TARGET_PRICE = 55
+TARGET_PRICE = 25
 # Price where you do not expect the stock to exceed
-UPPER_LIMIT = 65
+UPPER_LIMIT = 30
 # INTERVAL - Rounded to nearest 0.5
 SPREAD = UPPER_LIMIT - TARGET_PRICE
 if int(UPPER_LIMIT - TARGET_PRICE) != SPREAD:
@@ -17,7 +17,7 @@ else:
 # CONFIDENCE INTERVAL - HOW MUCH CAN IT DEVIATE FROM TARGET PRICE AND UPPER LIMIT
 CI = 0.2
 # TIMEFRAME - Over 1/2 year?
-TIMEFRAME_LONG = False
+TIMEFRAME_LONG = True
 
 
 def sort_chain(data,target_price,upper_limit):
@@ -44,10 +44,10 @@ def sort_chain(data,target_price,upper_limit):
                 for y in range(0, len(data[x]["optionStrategyList"])):
                     strike = str(data[x]["optionStrategyList"][y]["strategyStrike"])
                     strike = strike.split("/")
-                    if float(strike[1]) > TARGET_PRICE * (1-(CI/2)):
+                    if float(strike[1]) > TARGET_PRICE * (1+(CI/2)):
                         if float(strike[0]) >= (target_price * (1 - CI)) and float(strike[1]) <= (upper_limit * (1 + CI)):
                             strategy_cost = float(data[x]["optionStrategyList"][y]["strategyAsk"])
-                            if float(strike[0]) + strategy_cost < (target_price * (1 + (CI / 4))):
+                            if float(strike[0]) + strategy_cost < (target_price * (1 + (CI / 2))):
                                 # For Extracting Expiration Date
                                 s = data[x]["optionStrategyList"][y]["primaryLeg"]["description"].find(SYMBOL) + len(SYMBOL) + 1
                                 if float(strike[0]) == int(float(strike[0])):
@@ -55,118 +55,136 @@ def sort_chain(data,target_price,upper_limit):
                                 else:
                                     t = data[x]["optionStrategyList"][y]["primaryLeg"]["description"].find(
                                         " " + str(int(float(strike[0]))) + " ")
-                                if value_spread["Cost"] + value_spread["Buy Call"] > strategy_cost + data[x]["optionStrategyList"][y]["primaryLeg"]["strikePrice"]:
-                                    if value_spread["Cost"] + value_spread["Buy Call"] > value_spread_2["Cost"] + value_spread_2["Buy Call"]:
-                                        value_spread_2 = value_spread
-                                    value_spread = {
-                                        "Buy Call": float(strike[0]),
-                                        "Sell Call": float(strike[1]),
-                                        "Cost": strategy_cost,
-                                        "Break Even": float(strike[0]) + strategy_cost,
-                                        "Max Profit": round(float(strike[1]) - strategy_cost - float(strike[0]), 2),
-                                        "Expires": data[x]["optionStrategyList"][y]["primaryLeg"]["description"][s:t],
-                                        "ROI": round((float(strike[1]) - float(strike[0])) / strategy_cost, 1),
-                                        "Strategy": "Safe1"
-                                    }
-                                elif value_spread["Cost"] + value_spread_2["Buy Call"] > strategy_cost + data[x]["optionStrategyList"][y]["primaryLeg"]["strikePrice"]:
-                                    value_spread_2 = {
-                                        "Buy Call": float(strike[0]),
-                                        "Sell Call": float(strike[1]),
-                                        "Cost": strategy_cost,
-                                        "Break Even": float(strike[0]) + strategy_cost,
-                                        "Max Profit": round(float(strike[1]) - strategy_cost - float(strike[0]), 2),
-                                        "Expires": data[x]["optionStrategyList"][y]["primaryLeg"]["description"][s:t],
-                                        "ROI": round((float(strike[1]) - float(strike[0])) / strategy_cost, 1),
-                                        "Strategy": "Safe2"
-                                    }
-                                if float(strike[1]) - float(strike[0]) - strategy_cost > max_profit_spread["Max Profit"]:
-                                    if max_profit_spread["Max Profit"] > max_profit_spread_2["Max Profit"]:
-                                        max_profit_spread_2 = max_profit_spread
-                                    max_profit_spread = {
-                                        "Buy Call": float(strike[0]),
-                                        "Sell Call": float(strike[1]),
-                                        "Cost": strategy_cost,
-                                        "Break Even": float(strike[0]) + strategy_cost,
-                                        "Max Profit": round(float(strike[1]) - strategy_cost - float(strike[0]), 2),
-                                        "Expires": data[x]["optionStrategyList"][y]["primaryLeg"]["description"][s:t],
-                                        "ROI": round((float(strike[1]) - float(strike[0])) / strategy_cost, 1),
-                                        "Strategy": "Profit1"
-                                    }
-                                elif float(strike[1]) - float(strike[0]) - strategy_cost > max_profit_spread_2["Max Profit"]:
-                                    max_profit_spread_2 = {
-                                        "Buy Call": float(strike[0]),
-                                        "Sell Call": float(strike[1]),
-                                        "Cost": strategy_cost,
-                                        "Break Even": float(strike[0]) + strategy_cost,
-                                        "Max Profit": round(float(strike[1]) - strategy_cost - float(strike[0]), 2),
-                                        "Expires": data[x]["optionStrategyList"][y]["primaryLeg"]["description"][s:t],
-                                        "ROI": round((float(strike[1]) - float(strike[0])) / strategy_cost, 1),
-                                        "Strategy": "Profit2"
-                                    }
+                                try:
+                                    if value_spread["Cost"] + value_spread["Buy Call"] > strategy_cost + data[x]["optionStrategyList"][y]["primaryLeg"]["strikePrice"]:
+                                        if value_spread["Cost"] + value_spread["Buy Call"] > value_spread_2["Cost"] + value_spread_2["Buy Call"]:
+                                            value_spread_2 = value_spread
+                                        value_spread = {
+                                            "Buy Call": float(strike[0]),
+                                            "Sell Call": float(strike[1]),
+                                            "Cost": strategy_cost,
+                                            "Break Even": float(strike[0]) + strategy_cost,
+                                            "Max Profit": round(float(strike[1]) - strategy_cost - float(strike[0]), 2),
+                                            "Expires": data[x]["optionStrategyList"][y]["primaryLeg"]["description"][s:t],
+                                            "ROI": round((float(strike[1]) - float(strike[0])) / strategy_cost, 1),
+                                            "Strategy": "Safe1"
+                                        }
+                                    elif value_spread["Cost"] + value_spread_2["Buy Call"] > strategy_cost + data[x]["optionStrategyList"][y]["primaryLeg"]["strikePrice"]:
+                                        value_spread_2 = {
+                                            "Buy Call": float(strike[0]),
+                                            "Sell Call": float(strike[1]),
+                                            "Cost": strategy_cost,
+                                            "Break Even": float(strike[0]) + strategy_cost,
+                                            "Max Profit": round(float(strike[1]) - strategy_cost - float(strike[0]), 2),
+                                            "Expires": data[x]["optionStrategyList"][y]["primaryLeg"]["description"][s:t],
+                                            "ROI": round((float(strike[1]) - float(strike[0])) / strategy_cost, 1),
+                                            "Strategy": "Safe2"
+                                        }
+                                    if float(strike[1]) - float(strike[0]) - strategy_cost > max_profit_spread["Max Profit"]:
+                                        if max_profit_spread["Max Profit"] > max_profit_spread_2["Max Profit"]:
+                                            max_profit_spread_2 = max_profit_spread
+                                        max_profit_spread = {
+                                            "Buy Call": float(strike[0]),
+                                            "Sell Call": float(strike[1]),
+                                            "Cost": strategy_cost,
+                                            "Break Even": float(strike[0]) + strategy_cost,
+                                            "Max Profit": round(float(strike[1]) - strategy_cost - float(strike[0]), 2),
+                                            "Expires": data[x]["optionStrategyList"][y]["primaryLeg"]["description"][s:t],
+                                            "ROI": round((float(strike[1]) - float(strike[0])) / strategy_cost, 1),
+                                            "Strategy": "Profit1"
+                                        }
+                                    elif float(strike[1]) - float(strike[0]) - strategy_cost > max_profit_spread_2["Max Profit"]:
+                                        max_profit_spread_2 = {
+                                            "Buy Call": float(strike[0]),
+                                            "Sell Call": float(strike[1]),
+                                            "Cost": strategy_cost,
+                                            "Break Even": float(strike[0]) + strategy_cost,
+                                            "Max Profit": round(float(strike[1]) - strategy_cost - float(strike[0]), 2),
+                                            "Expires": data[x]["optionStrategyList"][y]["primaryLeg"]["description"][s:t],
+                                            "ROI": round((float(strike[1]) - float(strike[0])) / strategy_cost, 1),
+                                            "Strategy": "Profit2"
+                                        }
+                                except ZeroDivisionError:
+                                    pass
         else:
             if data[x]["daysToExp"] < 365:
                 for y in range(0, len(data[x]["optionStrategyList"])):
                     strike = str(data[x]["optionStrategyList"][y]["strategyStrike"])
                     strike = strike.split("/")
-                    if float(strike[0]) > TARGET_PRICE * (1-(CI/2)) :
-                        if float(strike[0]) >= (target_price * (1 - CI)) and float(strike[1]) <= (upper_limit * (1 + CI)):
+                    if float(strike[1]) > TARGET_PRICE * (1 + (CI / 2)):
+                        if float(strike[0]) >= (target_price * (1 - CI)) and float(strike[1]) <= (
+                                upper_limit * (1 + CI)):
                             strategy_cost = float(data[x]["optionStrategyList"][y]["strategyAsk"])
-                            if float(strike[0]) + strategy_cost < (target_price * (1 + (CI / 4))):
+                            if float(strike[0]) + strategy_cost < (target_price * (1 + (CI / 2))):
                                 # For Extracting Expiration Date
-                                s = data[x]["optionStrategyList"][y]["primaryLeg"]["description"].find(SYMBOL) + len(SYMBOL) + 1
+                                s = data[x]["optionStrategyList"][y]["primaryLeg"]["description"].find(SYMBOL) + len(
+                                    SYMBOL) + 1
                                 if float(strike[0]) == int(float(strike[0])):
-                                    t = data[x]["optionStrategyList"][y]["primaryLeg"]["description"].find(" " + str(int(float(strike[0]))) + " Call")
+                                    t = data[x]["optionStrategyList"][y]["primaryLeg"]["description"].find(
+                                        " " + str(int(float(strike[0]))) + " Call")
                                 else:
                                     t = data[x]["optionStrategyList"][y]["primaryLeg"]["description"].find(
                                         " " + str(int(float(strike[0]))) + " ")
-                                if value_spread["Cost"] + value_spread["Buy Call"] > strategy_cost + data[x]["optionStrategyList"][y]["primaryLeg"]["strikePrice"]:
-                                    if value_spread["Cost"] + value_spread["Buy Call"] > value_spread_2["Cost"] + value_spread_2["Buy Call"]:
-                                        value_spread_2 = value_spread
-                                    value_spread = {
-                                        "Buy Call": float(strike[0]),
-                                        "Sell Call": float(strike[1]),
-                                        "Cost": strategy_cost,
-                                        "Break Even": float(strike[0]) + strategy_cost,
-                                        "Max Profit": round(float(strike[1]) - strategy_cost - float(strike[0]), 2),
-                                        "Expires": data[x]["optionStrategyList"][y]["primaryLeg"]["description"][s:t],
-                                        "ROI": round((float(strike[1]) - float(strike[0])) / strategy_cost, 1),
-                                        "Strategy": "Safe1"
-                                    }
-                                elif value_spread["Cost"] + value_spread_2["Buy Call"] > strategy_cost + data[x]["optionStrategyList"][y]["primaryLeg"]["strikePrice"]:
-                                    value_spread_2 = {
-                                        "Buy Call": float(strike[0]),
-                                        "Sell Call": float(strike[1]),
-                                        "Cost": strategy_cost,
-                                        "Break Even": float(strike[0]) + strategy_cost,
-                                        "Max Profit": round(float(strike[1]) - strategy_cost - float(strike[0]), 2),
-                                        "Expires": data[x]["optionStrategyList"][y]["primaryLeg"]["description"][s:t],
-                                        "ROI": round((float(strike[1]) - float(strike[0])) / strategy_cost, 1),
-                                        "Strategy": "Safe2"
-                                    }
-                                if float(strike[1]) - float(strike[0]) - strategy_cost > max_profit_spread["Max Profit"]:
-                                    if max_profit_spread["Max Profit"] > max_profit_spread_2["Max Profit"]:
-                                        max_profit_spread_2 = max_profit_spread
-                                    max_profit_spread = {
-                                        "Buy Call": float(strike[0]),
-                                        "Sell Call": float(strike[1]),
-                                        "Cost": strategy_cost,
-                                        "Break Even": float(strike[0]) + strategy_cost,
-                                        "Max Profit": round(float(strike[1]) - strategy_cost - float(strike[0]), 2),
-                                        "Expires": data[x]["optionStrategyList"][y]["primaryLeg"]["description"][s:t],
-                                        "ROI": round((float(strike[1]) - float(strike[0])) / strategy_cost, 1),
-                                        "Strategy": "Profit1"
-                                    }
-                                elif float(strike[1]) - float(strike[0]) - strategy_cost > max_profit_spread_2["Max Profit"]:
-                                    max_profit_spread_2 = {
-                                        "Buy Call": float(strike[0]),
-                                        "Sell Call": float(strike[1]),
-                                        "Cost": strategy_cost,
-                                        "Break Even": float(strike[0]) + strategy_cost,
-                                        "Max Profit": round(float(strike[1]) - strategy_cost - float(strike[0]), 2),
-                                        "Expires": data[x]["optionStrategyList"][y]["primaryLeg"]["description"][s:t],
-                                        "ROI": round((float(strike[1]) - float(strike[0])) / strategy_cost, 1),
-                                        "Strategy": "Profit2"
-                                    }
+                                try:
+                                    if value_spread["Cost"] + value_spread["Buy Call"] > strategy_cost + \
+                                            data[x]["optionStrategyList"][y]["primaryLeg"]["strikePrice"]:
+                                        if value_spread["Cost"] + value_spread["Buy Call"] > value_spread_2["Cost"] + \
+                                                value_spread_2["Buy Call"]:
+                                            value_spread_2 = value_spread
+                                        value_spread = {
+                                            "Buy Call": float(strike[0]),
+                                            "Sell Call": float(strike[1]),
+                                            "Cost": strategy_cost,
+                                            "Break Even": float(strike[0]) + strategy_cost,
+                                            "Max Profit": round(float(strike[1]) - strategy_cost - float(strike[0]), 2),
+                                            "Expires": data[x]["optionStrategyList"][y]["primaryLeg"]["description"][
+                                                       s:t],
+                                            "ROI": round((float(strike[1]) - float(strike[0])) / strategy_cost, 1),
+                                            "Strategy": "Safe1"
+                                        }
+                                    elif value_spread["Cost"] + value_spread_2["Buy Call"] > strategy_cost + \
+                                            data[x]["optionStrategyList"][y]["primaryLeg"]["strikePrice"]:
+                                        value_spread_2 = {
+                                            "Buy Call": float(strike[0]),
+                                            "Sell Call": float(strike[1]),
+                                            "Cost": strategy_cost,
+                                            "Break Even": float(strike[0]) + strategy_cost,
+                                            "Max Profit": round(float(strike[1]) - strategy_cost - float(strike[0]), 2),
+                                            "Expires": data[x]["optionStrategyList"][y]["primaryLeg"]["description"][
+                                                       s:t],
+                                            "ROI": round((float(strike[1]) - float(strike[0])) / strategy_cost, 1),
+                                            "Strategy": "Safe2"
+                                        }
+                                    if float(strike[1]) - float(strike[0]) - strategy_cost > max_profit_spread[
+                                        "Max Profit"]:
+                                        if max_profit_spread["Max Profit"] > max_profit_spread_2["Max Profit"]:
+                                            max_profit_spread_2 = max_profit_spread
+                                        max_profit_spread = {
+                                            "Buy Call": float(strike[0]),
+                                            "Sell Call": float(strike[1]),
+                                            "Cost": strategy_cost,
+                                            "Break Even": float(strike[0]) + strategy_cost,
+                                            "Max Profit": round(float(strike[1]) - strategy_cost - float(strike[0]), 2),
+                                            "Expires": data[x]["optionStrategyList"][y]["primaryLeg"]["description"][
+                                                       s:t],
+                                            "ROI": round((float(strike[1]) - float(strike[0])) / strategy_cost, 1),
+                                            "Strategy": "Profit1"
+                                        }
+                                    elif float(strike[1]) - float(strike[0]) - strategy_cost > max_profit_spread_2[
+                                        "Max Profit"]:
+                                        max_profit_spread_2 = {
+                                            "Buy Call": float(strike[0]),
+                                            "Sell Call": float(strike[1]),
+                                            "Cost": strategy_cost,
+                                            "Break Even": float(strike[0]) + strategy_cost,
+                                            "Max Profit": round(float(strike[1]) - strategy_cost - float(strike[0]), 2),
+                                            "Expires": data[x]["optionStrategyList"][y]["primaryLeg"]["description"][
+                                                       s:t],
+                                            "ROI": round((float(strike[1]) - float(strike[0])) / strategy_cost, 1),
+                                            "Strategy": "Profit2"
+                                        }
+                                except ZeroDivisionError:
+                                    pass
 
     return value_spread,value_spread_2,max_profit_spread,max_profit_spread_2
 
