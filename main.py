@@ -1,13 +1,12 @@
 from urllib.request import urlopen
 import json
-import pprint
 
 APIKEY = "PRXEUA8NGTONOWLNLGAOCCSLGKUKN41H"
-SYMBOL = "PLTR"
+SYMBOL = ""
 # Price where you want the strike to break even
-TARGET_PRICE = 25
+TARGET_PRICE = 50
 # Price where you do not expect the stock to exceed
-UPPER_LIMIT = 30
+UPPER_LIMIT = 60
 # INTERVAL - Rounded to nearest 0.5
 SPREAD = UPPER_LIMIT - TARGET_PRICE
 if int(UPPER_LIMIT - TARGET_PRICE) != SPREAD:
@@ -15,12 +14,13 @@ if int(UPPER_LIMIT - TARGET_PRICE) != SPREAD:
 else:
     INTERVAL = SPREAD
 # CONFIDENCE INTERVAL - HOW MUCH CAN IT DEVIATE FROM TARGET PRICE AND UPPER LIMIT
-CI = 0.2
+# Recommended - at least 8-10%
+CI = 0.1
 # TIMEFRAME - Over 1/2 year?
 TIMEFRAME_LONG = True
 
 
-def sort_chain(data,target_price,upper_limit):
+def sort_chain(data, target_price, upper_limit):
     # Sorted by two cheapest, two least risk
     # Set it to some ridiculous number so there is something to reference for first iteration
     value_spread = {
@@ -46,8 +46,9 @@ def sort_chain(data,target_price,upper_limit):
                     strike = strike.split("/")
                     if float(strike[1]) > TARGET_PRICE * (1+(CI/2)):
                         if float(strike[0]) >= (target_price * (1 - CI)) and float(strike[1]) <= (upper_limit * (1 + CI)):
-                            strategy_cost = float(data[x]["optionStrategyList"][y]["strategyAsk"])
+                            strategy_cost = (float(data[x]["optionStrategyList"][y]["strategyAsk"]) + float(data[x]["optionStrategyList"][y]["strategyBid"])) / 2
                             if float(strike[0]) + strategy_cost < (target_price * (1 + (CI / 2))):
+
                                 # For Extracting Expiration Date
                                 s = data[x]["optionStrategyList"][y]["primaryLeg"]["description"].find(SYMBOL) + len(SYMBOL) + 1
                                 if float(strike[0]) == int(float(strike[0])):
@@ -107,7 +108,7 @@ def sort_chain(data,target_price,upper_limit):
                                 except ZeroDivisionError:
                                     pass
         else:
-            if data[x]["daysToExp"] < 365:
+            if 365 > data[x]["daysToExp"] > 20:
                 for y in range(0, len(data[x]["optionStrategyList"])):
                     strike = str(data[x]["optionStrategyList"][y]["strategyStrike"])
                     strike = strike.split("/")
@@ -194,11 +195,14 @@ def get_jsonparsed_data(url):
     data = response.read().decode("utf-8")
     return json.loads(data)
 
-
 DATA_INITIAL = get_jsonparsed_data(
     "https://api.tdameritrade.com/v1/marketdata/chains?apikey=" + APIKEY + "&symbol=" + SYMBOL + "&contractType=CALL&strikeCount=128&strategy=VERTICAL"
                                                                                                  "&interval=" + str(INTERVAL))
-DATA_INITIAL = DATA_INITIAL["monthlyStrategyList"]
+try :
+    DATA_INITIAL = DATA_INITIAL["monthlyStrategyList"]
+except KeyError:
+    raise Exception("Invalid stock ticker")
+
 
 golden_strat = {
     "ROI": 0
@@ -207,12 +211,13 @@ golden_strat = {
 CHAIN_INITIAL = sort_chain(DATA_INITIAL, TARGET_PRICE, UPPER_LIMIT)
 
 value_strat = CHAIN_INITIAL[0], CHAIN_INITIAL[1]
-
-
-for strat in range(2,3):
-    if golden_strat["ROI"] < CHAIN_INITIAL[strat]["Max Profit"]/CHAIN_INITIAL[strat]["Cost"]:
-        golden_strat = CHAIN_INITIAL[strat]
-        golden_strat["ROI"] = round(INTERVAL/CHAIN_INITIAL[strat]["Cost"], 1)
+try :
+    for strat in range(2,3):
+        if golden_strat["ROI"] < CHAIN_INITIAL[strat]["Max Profit"]/CHAIN_INITIAL[strat]["Cost"]:
+            golden_strat = CHAIN_INITIAL[strat]
+            golden_strat["ROI"] = round(INTERVAL/CHAIN_INITIAL[strat]["Cost"], 1)
+except KeyError:
+    raise Exception("No acceptable strategies found. (hint: Try raising CI or adjusting spread)")
 
 if TARGET_PRICE < 50:
     WIDE_INTERVAL = INTERVAL + 5
