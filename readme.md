@@ -6,12 +6,12 @@
 That's it!! 🥳
 
 # Config
-Open main.py in your favorite editor, I like NeoVim :)
+Open config.py in your favorite editor
 ```
 git clone https://github.com/azvaliev/spreadanalysis.git
 ...
 cd spreads
-nvim config.py
+code .
 ```
 
 
