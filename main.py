@@ -3,28 +3,21 @@ from urllib.request import urlopen
 from urllib.error import HTTPError
 import json
 
-try:
-    API_KEY = sys.argv[1]
-except IndexError:
-    raise Exception("\nPlease provide TD Ameritrade api key when running (i.e. python3 main.py APIKEY)\n"
-                    "Go to https://developer.tdameritrade.com/ to get one for free")
+from config import *
 
-SYMBOL = "ZUMZ"
-# Price where you want the strike to break even
-TARGET_PRICE = 50
-# Price where you do not expect the stock to exceed
-UPPER_LIMIT = 60
+if len(API_KEY) < 1:
+    try:
+        API_KEY = sys.argv[1]
+    except IndexError:
+        raise Exception("\nPlease provide TD Ameritrade api key when running (i.e. python3 main.py APIKEY or add to config.py)\n"
+                        "Go to https://developer.tdameritrade.com/ to get one for free")
+
 # INTERVAL - Rounded to nearest 0.5
 SPREAD = UPPER_LIMIT - TARGET_PRICE
 if int(UPPER_LIMIT - TARGET_PRICE) != SPREAD:
     INTERVAL = round((SPREAD) * 2) / 2
 else:
     INTERVAL = SPREAD
-# CONFIDENCE INTERVAL - HOW MUCH CAN IT DEVIATE FROM TARGET PRICE AND UPPER LIMIT
-# Recommended - at least 8-10%
-CI = 0.1
-# TIMEFRAME - Over 1/2 year?
-TIMEFRAME_LONG = True
 
 
 def sort_chain(data, target_price, upper_limit):
