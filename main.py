@@ -208,7 +208,7 @@ except KeyError:
     raise Exception("Invalid stock ticker")
 
 
-golden_strat = {
+optimal_strat = {
     "ROI": 0
 }
 
@@ -217,9 +217,9 @@ CHAIN_INITIAL = sort_chain(DATA_INITIAL, TARGET_PRICE, UPPER_LIMIT)
 value_strat = CHAIN_INITIAL[0], CHAIN_INITIAL[1]
 try :
     for strat in range(2,3):
-        if golden_strat["ROI"] < CHAIN_INITIAL[strat]["Max Profit"]/CHAIN_INITIAL[strat]["Cost"]:
-            golden_strat = CHAIN_INITIAL[strat]
-            golden_strat["ROI"] = round(INTERVAL/CHAIN_INITIAL[strat]["Cost"], 1)
+        if optimal_strat["ROI"] < CHAIN_INITIAL[strat]["Max Profit"]/CHAIN_INITIAL[strat]["Cost"]:
+            optimal_strat = CHAIN_INITIAL[strat]
+            optimal_strat["ROI"] = round(INTERVAL/CHAIN_INITIAL[strat]["Cost"], 1)
 except KeyError:
     raise Exception("No acceptable strategies found. (hint: Try raising CI or adjusting spread)")
 
@@ -242,12 +242,12 @@ DATA_WIDER = DATA_WIDER["monthlyStrategyList"]
 wide = sort_chain(DATA_WIDER, WIDE_TARGET_PRICE, WIDE_UPPER_LIMIT)
 for spread in wide:
     try:
-        if spread["Max Profit"]/spread["Cost"] > golden_strat["ROI"]:
-            golden_strat = spread
-            golden_strat["ROI"] = round(WIDE_INTERVAL/spread["Cost"], 1)
+        if spread["Max Profit"]/spread["Cost"] > optimal_strat["ROI"]:
+            optimal_strat = spread
+            optimal_strat["ROI"] = round(WIDE_INTERVAL/spread["Cost"], 1)
     except KeyError:
         pass
 
-print("Best ROI\n" + str(golden_strat))
+print("Best ROI\n" + str(optimal_strat))
 print("Safest\n" + str(value_strat[0]) + "\n" + str(value_strat[1]))
 
