@@ -1,8 +1,15 @@
+import sys
 from urllib.request import urlopen
+from urllib.error import HTTPError
 import json
 
-APIKEY = "PRXEUA8NGTONOWLNLGAOCCSLGKUKN41H"
-SYMBOL = ""
+try:
+    API_KEY = sys.argv[1]
+except IndexError:
+    raise Exception("\nPlease provide TD Ameritrade api key when running (i.e. python3 main.py APIKEY)\n"
+                    "Go to https://developer.tdameritrade.com/ to get one for free")
+
+SYMBOL = "ZUMZ"
 # Price where you want the strike to break even
 TARGET_PRICE = 50
 # Price where you do not expect the stock to exceed
@@ -195,10 +202,14 @@ def get_jsonparsed_data(url):
     data = response.read().decode("utf-8")
     return json.loads(data)
 
-DATA_INITIAL = get_jsonparsed_data(
-    "https://api.tdameritrade.com/v1/marketdata/chains?apikey=" + APIKEY + "&symbol=" + SYMBOL + "&contractType=CALL&strikeCount=128&strategy=VERTICAL"
-                                                                                                 "&interval=" + str(INTERVAL))
-try :
+try:
+    DATA_INITIAL = get_jsonparsed_data(
+        "https://api.tdameritrade.com/v1/marketdata/chains?apikey=" + API_KEY + "&symbol=" + SYMBOL + "&contractType=CALL&strikeCount=128&strategy=VERTICAL"
+                                                                "&interval=" + str(INTERVAL))
+except HTTPError:
+    raise Exception("Please provide TD Ameritrade api key when running (i.e. python3 main.py APIKEY)\n"
+                    "Go to https://developer.tdameritrade.com/ to get one for free")
+try:
     DATA_INITIAL = DATA_INITIAL["monthlyStrategyList"]
 except KeyError:
     raise Exception("Invalid stock ticker")
@@ -232,7 +243,7 @@ else:
     WIDE_UPPER_LIMIT = round(WIDE_UPPER_LIMIT/2.5) * 2.5
 
 DATA_WIDER = get_jsonparsed_data(
-    "https://api.tdameritrade.com/v1/marketdata/chains?apikey=" + APIKEY + "&symbol=" + SYMBOL + "&contractType=CALL&strikeCount=128&strategy=VERTICAL"
+    "https://api.tdameritrade.com/v1/marketdata/chains?apikey=" + API_KEY + "&symbol=" + SYMBOL + "&contractType=CALL&strikeCount=128&strategy=VERTICAL"
                                                                                                  "&interval=" + str(WIDE_INTERVAL))
 DATA_WIDER = DATA_WIDER["monthlyStrategyList"]
 wide = sort_chain(DATA_WIDER, WIDE_TARGET_PRICE, WIDE_UPPER_LIMIT)
